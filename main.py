@@ -21,6 +21,8 @@ def start_listener():
                 write_msg(event.user_id,
                           bots_dict[event.user_id].new_message(event.text))
                 print('Текст: ', event.text)
+                if bots_dict[event.user_id].stop:
+                    break
                 if ready_to_search(event.user_id):
                     bots_dict[event.user_id].get_candidates_list()
                     bots_dict[event.user_id].search_params = {}
@@ -48,4 +50,4 @@ if __name__ == '__main__':
     service = Service()
     service.recreate_tables()
     start_listener()
-    service.session.close_all()
+    service.session.close_all_sessions()

@@ -1,7 +1,7 @@
 import re
 from bot_api.finder import VK_Finder
 from logic.service import Service
-from config import app_token
+from config import app_token, token
 
 
 class VK_Bot:
@@ -18,8 +18,9 @@ class VK_Bot:
                             last_name=info[0]['last_name'], city=self._CITY,
                             gender='Ж' if info[0]['sex'] == 1 else 'М')
         self._COMMANDS = ['ПРИВЕТ', 'М', 'Ж', '+', 'ПОКА']
-        self._VK_FINDER = VK_Finder(app_token=app_token, user_id=client_id)
+        self._VK_FINDER = VK_Finder(app_token=token, user_id=client_id)
         self.search_params = {}
+        self.stop = False
 
     def new_message(self, message):
         # Привет
@@ -38,6 +39,7 @@ class VK_Bot:
             return self.get_next_question()
         # Пока
         elif message.upper() == self._COMMANDS[4]:
+            self.stop = True
             return f"Пока-пока, {self._USERNAME}!"
         # Другой населённый пункт
         elif message.startswith('@'):
