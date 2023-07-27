@@ -51,7 +51,8 @@ class VK_Finder:
         url = 'https://api.vk.com/method/users.search'
         print('In get_pretendents')
         try:
-            response = requests.get(url=url, params=params).json()
+            response = requests.get(url=url,
+                                    params={**self.params, **params}).json()
             if response.get('error'):
                 raise Exception(response['error']['error_msg'])
 
