@@ -48,7 +48,6 @@ class VK_Bot:
         # Возрастной интервал
         elif message is not None:
             ages = re.match(r'(\d{2})\s*-\s*(\d{2})', message)
-            print('groups count =', len(ages.groups()))
             if ages is not None and len(ages.groups()) == 2:
                 self.search_params['age_from'] = ages.group(1)
                 self.search_params['age_to'] = ages.group(2)
