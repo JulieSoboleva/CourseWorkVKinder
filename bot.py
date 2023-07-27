@@ -2,7 +2,7 @@ import re
 from bot_api.finder import VK_Finder
 from logic.service import Service
 from config import app_token
-
+from vk_api.keyboard import VkKeyboard, VkKeyboardColor, VkKeyboardButton
 
 class VK_Bot:
 
@@ -17,12 +17,17 @@ class VK_Bot:
         self._DB.add_client(vk_id=client_id, first_name=self._USERNAME,
                             last_name=info[0]['last_name'], city=self._CITY,
                             gender='Ж' if info[0]['sex'] == 1 else 'М')
-        self._COMMANDS = ['ПРИВЕТ', 'М', 'Ж', '+', 'ПОКА']
+        self._COMMANDS = ['ПРИВЕТ', 'М', 'Ж', '+', 'ПОКА', 'Y', 'В ИЗБРАННОЕ',
+                          'СЛЕДУЮЩИЙ', 'ТОЧНО НЕТ']
         self._VK_FINDER = VK_Finder(app_token=app_token, user_id=client_id)
         self.search_params = {}
         self.stop = False
+        self.query_id = 0
+        self.keyboard = None
+        self.counter = 0
+        self.candidates = None
 
-    def new_message(self, message):
+    def new_message(self, message) -> str:
         # Привет
         if message.upper() == self._COMMANDS[0]:
             return f'Привет, {self._USERNAME}! ' \
@@ -45,6 +50,17 @@ class VK_Bot:
         elif message.startswith('@'):
             self.search_params['city'] = message[1:].capitalize()
             return self.get_next_question()
+        elif message.upper() in (self._COMMANDS[5], self._COMMANDS[6],
+                                 self._COMMANDS[7], self._COMMANDS[8]):
+            if message.upper() == self._COMMANDS[6]:
+                self._DB.add_to_favourites(
+                    self._USER_ID, self.candidates[self.counter-1]['id'])
+            elif message.upper() == self._COMMANDS[8]:
+                self._DB.delete_from_candidates(
+                    self.query_id, self.candidates[self.counter-1]['id'])
+            self.keyboard = self.create_buttons()
+            self.counter += 1
+            return self.candidates[self.counter - 1]
         # Возрастной интервал
         elif message is not None:
             ages = re.match(r'(\d{2})\s*-\s*(\d{2})', message)
@@ -53,6 +69,13 @@ class VK_Bot:
                 self.search_params['age_to'] = ages.group(2)
                 return self.get_next_question()
             return "Не понимаю о чем вы..."
+
+    def create_buttons(self):
+        keyboard = VkKeyboard(one_time=True)
+        keyboard.add_button('В избранное', VkKeyboardColor.POSITIVE)
+        keyboard.add_button('Следующий', VkKeyboardColor.PRIMARY)
+        keyboard.add_button('Точно нет', VkKeyboardColor.NEGATIVE)
+        return keyboard
 
     def get_next_question(self) -> str:
         if self.search_params.get('gender') is None:
@@ -70,28 +93,32 @@ class VK_Bot:
         return 'Все параметры заданы. Пошёл искать...'
 
     def get_candidates_list(self):
-        query_id = self._DB.has_query(self._USER_ID,
-                                      self.search_params['gender'],
-                                      self.search_params['city'],
-                                      self.search_params['age_from'],
-                                      self.search_params['age_to'])
-        if query_id != 0:
-            return self._DB.get_persons(query_id)
+        self.query_id = self._DB.has_query(self._USER_ID,
+                                           self.search_params['gender'],
+                                           self.search_params['city'],
+                                           self.search_params['age_from'],
+                                           self.search_params['age_to'])
+        if self.query_id != 0:
+            return self._DB.get_persons(self.query_id)
 
-        query_id = self._DB.add_query(self._USER_ID,
-                                      self.search_params['gender'],
-                                      self.search_params['city'],
-                                      self.search_params['age_from'],
-                                      self.search_params['age_to'])
+        self.query_id = self._DB.add_query(self._USER_ID,
+                                           self.search_params['gender'],
+                                           self.search_params['city'],
+                                           self.search_params['age_from'],
+                                           self.search_params['age_to'])
         candidates = self._VK_FINDER.get_pretendents(
             self.search_params['age_from'], self.search_params['age_to'],
             self.search_params['gender'], self.search_params['city'])
 
-        self._DB.add_persons(query_id, candidates)
+        self._DB.add_persons(self.query_id, candidates)
         print('Список сформирован и записан в БД')
         return candidates
 
-    def show_candidates(self):
-        candidates = self.get_candidates_list()
-        print(candidates)
+    def find_candidates(self) -> str:
+        self.counter = 0
+        self.candidates = self.get_candidates_list()
+        # print(candidates)
         self.search_params = {}
+        return f'Нашёл подходящих людей: {len(self.candidates)}' \
+               f'\nПоказывать?' \
+               f'\n(Для демонстрации результатов поиска введи Y)'

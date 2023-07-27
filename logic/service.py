@@ -18,7 +18,7 @@ class Service:
         print('Таблицы созданы')
 
     def add_client(self, vk_id, first_name, last_name, city, gender):
-        client = self.session.query(Queries).filter_by(id=vk_id).first()
+        client = self.session.query(Clients).filter_by(id=vk_id).first()
         if client is not None:
             print(f'Клиент с id = {vk_id} уже есть в БД')
             return
@@ -61,6 +61,18 @@ class Service:
             link.person = person
             person.queries.append(link)
             self.session.add(link)
+        self.session.commit()
+
+    def add_to_favourites(self, client_id, person_id):
+        link = Favourites(client_id=client_id, person_id=person_id)
+        self.session.add(link)
+        self.session.commit()
+
+    def delete_from_candidates(self, query_id, person_id):
+        link = self.session.query(Candidates).filter(
+            and_(Candidates.query_id == query_id,
+                 Candidates.person_id == person_id)).first()
+        self.session.delete(link)
         self.session.commit()
 
     def get_persons(self, query_id) -> list:

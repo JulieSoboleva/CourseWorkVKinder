@@ -19,18 +19,26 @@ def start_listener():
                     bots_dict[event.user_id] = VK_Bot(event.user_id, vk)
 
                 write_msg(event.user_id,
-                          bots_dict[event.user_id].new_message(event.text))
+                          bots_dict[event.user_id].new_message(event.text),
+                          bots_dict[event.user_id].keyboard)
                 print('Текст: ', event.text)
                 if bots_dict[event.user_id].stop:
                     break
                 if ready_to_search(event.user_id):
-                    bots_dict[event.user_id].show_candidates()
+                    write_msg(event.user_id,
+                              bots_dict[event.user_id].find_candidates(),
+                              bots_dict[event.user_id].keyboard)
 
 
-def write_msg(user_id, message):
-    vk.method('messages.send', {'user_id': user_id,
-                                'message': message,
-                                'random_id': randrange(10 ** 7)})
+def write_msg(user_id, message, keyboard=None):
+    post = {
+        'user_id': user_id,
+        'message': message,
+        'random_id': randrange(10 ** 7)
+    }
+    if keyboard is not None:
+        post['keyboard'] = keyboard.get_keyboard()
+    vk.method('messages.send', post)
 
 
 def ready_to_search(user_id) -> bool:
@@ -49,4 +57,4 @@ if __name__ == '__main__':
     service = Service()
     # service.recreate_tables()
     start_listener()
-    service.session.close_all_sessions()
+    service.session.close_all()
