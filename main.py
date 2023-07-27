@@ -19,7 +19,7 @@ def start_listener():
                     bots_dict[event.user_id] = VK_Bot(event.user_id, vk)
 
                 write_msg(event.user_id,
-                              bots_dict[event.user_id].new_message(event.text))
+                          bots_dict[event.user_id].new_message(event.text))
                 print('Текст: ', event.text)
                 if ready_to_search(event.user_id):
                     bots_dict[event.user_id].get_candidates_list()

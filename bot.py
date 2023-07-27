@@ -48,7 +48,7 @@ class VK_Bot:
             return f'Укажи возрастной интервал в формате: "20 - 40".' \
                    f'(Минимальный возраст - 16 лет, максимальный - 99)'
         # Возрастной интервал
-        else:
+        elif message is not None:
             ages = re.match(r'(\d{2})\s*-\s*(\d{2})', message)
             print('groups count =', len(ages.groups()))
             if len(ages.groups()) == 2:
