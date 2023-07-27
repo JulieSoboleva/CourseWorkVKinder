@@ -16,8 +16,7 @@ class Clients(Base):
     gender = sa.Column(sa.String(1))
     __table_args__ = (CheckConstraint(gender.in_(['М', 'Ж'])),)
 
-    favourites_persons = relationship('Persons', secondary='favourites',
-                                      back_populates='favourites_clients')
+    persons = relationship('Favourites', back_populates='client')
 
 
 class Queries(Base):
@@ -37,8 +36,7 @@ class Queries(Base):
     __table_args__ = (CheckConstraint(gender.in_(['М', 'Ж'])),
                       CheckConstraint(age_from > 15),
                       CheckConstraint(age_to < 100),)
-    candidates_persons = relationship('Persons', secondary='candidates',
-                                      back_populates='candidates_queries')
+    persons = relationship('Candidates', back_populates='query')
 
 
 class Persons(Base):
@@ -52,28 +50,31 @@ class Persons(Base):
     photo_2_link = sa.Column(sa.String(2000))
     photo_3_link = sa.Column(sa.String(2000))
 
-    favourites_clients = relationship('Clients', secondary='favourites',
-                                      back_populates='favourites_persons')
-    candidates_queries = relationship('Queries', secondary='candidates',
-                                      back_populates='candidates_persons')
+    queries = relationship('Candidates', back_populates='person')
+    clients = relationship('Favourites', back_populates='person')
 
 
-favourites = sa.Table(
-    'favourites', Base.metadata,
-    sa.Column('client_id', sa.BigInteger,
-              sa.ForeignKey('clients.id', ondelete='NO ACTION'),
-              nullable=False),
-    sa.Column('person_id', sa.BigInteger,
-              sa.ForeignKey('persons.id', ondelete='NO ACTION'),
-              nullable=False)
-)
+class Candidates(Base):
+    __tablename__ = 'candidates'
 
-candidates = sa.Table(
-    'candidates', Base.metadata,
-    sa.Column('query_id', sa.BigInteger,
-              sa.ForeignKey('queries.id', ondelete='NO ACTION'),
-              nullable=False),
-    sa.Column('person_id', sa.BigInteger,
-              sa.ForeignKey('persons.id', ondelete='NO ACTION'),
-              nullable=False)
-)
+    query_id = sa.Column(sa.BigInteger,
+                         sa.ForeignKey('queries.id', ondelete='NO ACTION'),
+                         primary_key=True)
+    person_id = sa.Column(sa.BigInteger,
+                          sa.ForeignKey('persons.id', ondelete='NO ACTION'),
+                          primary_key=True)
+    query = relationship('Queries', back_populates='persons')
+    person = relationship('Persons', back_populates='queries')
+
+
+class Favourites(Base):
+    __tablename__ = 'favourites'
+
+    client_id = sa.Column(sa.BigInteger,
+                          sa.ForeignKey('clients.id', ondelete='NO ACTION'),
+                          primary_key=True)
+    person_id = sa.Column(sa.BigInteger,
+                          sa.ForeignKey('persons.id', ondelete='NO ACTION'),
+                          primary_key=True)
+    client = relationship('Clients', back_populates='persons')
+    person = relationship('Persons', back_populates='clients')

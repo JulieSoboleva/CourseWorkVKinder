@@ -1,7 +1,7 @@
 import sqlalchemy as sa
 from sqlalchemy import or_, and_
 from sqlalchemy.orm import sessionmaker
-from .models import Clients, Base, Queries, Persons, favourites, candidates
+from .models import Clients, Base, Queries, Persons, Favourites, Candidates
 
 
 class Service:
@@ -52,16 +52,21 @@ class Service:
                              surname=person['surname'],
                              profile_url=person['url'],
                              photo_1_link=person['photos'][0],
-                             photo_2_link=person['photos'][1],
-                             photo_3_link=person['photos'][2])
+                             photo_2_link=person['photos'][1]
+                             if len(person['photos']) > 1 else None,
+                             photo_3_link=person['photos'][2]
+                             if len(person['photos']) > 2 else None)
             self.session.add(person)
-            self.session.add(candidates(query_id=query_id, person_id=person.id))
+            link = Candidates(query_id=query_id)
+            link.person = person
+            person.queries.append(link)
+            self.session.add(link)
         self.session.commit()
 
     def get_persons(self, query_id) -> list:
         result = self.session.query(Persons) \
-            .join(candidates, and_(candidates.query_id == query_id,
-                                   Persons.id == candidates.person_id)).all()
+            .join(Candidates, and_(Candidates.query_id == query_id,
+                                   Persons.id == Candidates.person_id)).all()
         if result is None:
             print('Не нашёл ни одного кандидата, связанного с этим запросом.')
             return []

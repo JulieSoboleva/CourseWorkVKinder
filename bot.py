@@ -1,7 +1,7 @@
 import re
 from bot_api.finder import VK_Finder
 from logic.service import Service
-from config import app_token, token
+from config import app_token
 
 
 class VK_Bot:
