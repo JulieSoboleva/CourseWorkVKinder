@@ -17,7 +17,7 @@ class VK_Bot:
         self._DB.add_client(vk_id=client_id, first_name=self._USERNAME,
                             last_name=info[0]['last_name'], city=self._CITY,
                             gender='Ж' if info[0]['sex'] == 1 else 'М')
-        self._COMMANDS = ['ПРИВЕТ', 'М', 'Ж', '+', 'ПОКА', 'Y', 'В ИЗБРАННОЕ',
+        self._COMMANDS = ['ПРИВЕТ', 'М', 'Ж', '+', 'ПОКА', 'П', 'В ИЗБРАННОЕ',
                           'СЛЕДУЮЩИЙ', 'ТОЧНО НЕТ']
         self._VK_FINDER = VK_Finder(app_token=app_token, user_id=client_id)
         self.search_params = {}
@@ -26,10 +26,13 @@ class VK_Bot:
         self.keyboard = None
         self.counter = 0
         self.candidates = None
+        self.attachment = None
 
     def new_message(self, message) -> str:
         # Привет
         if message.upper() == self._COMMANDS[0]:
+            self.keyboard = None
+            self.attachment = None
             return f'Привет, {self._USERNAME}! ' \
                    f'Я могу помочь тебе найти человека.' \
                    f'\nКого ты ищешь? (Введи М или Ж)'
@@ -37,18 +40,27 @@ class VK_Bot:
         elif (message.upper() == self._COMMANDS[1] or
               message.upper() == self._COMMANDS[2]):
             self.search_params['gender'] = message.upper()
+            self.attachment = None
+            self.keyboard = None
             return self.get_next_question()
         # Свой город
         elif message.upper() == self._COMMANDS[3]:
             self.search_params['city'] = self._CITY
+            self.attachment = None
+            self.keyboard = None
             return self.get_next_question()
         # Пока
         elif message.upper() == self._COMMANDS[4]:
             self.stop = True
+            self.keyboard = None
+            self.attachment = None
+            self.candidates = None
             return f"Пока-пока, {self._USERNAME}!"
         # Другой населённый пункт
         elif message.startswith('@'):
             self.search_params['city'] = message[1:].capitalize()
+            self.attachment = None
+            self.keyboard = None
             return self.get_next_question()
         elif message.upper() in (self._COMMANDS[5], self._COMMANDS[6],
                                  self._COMMANDS[7], self._COMMANDS[8]):
@@ -60,9 +72,17 @@ class VK_Bot:
                     self.query_id, self.candidates[self.counter-1]['id'])
             self.keyboard = self.create_buttons()
             self.counter += 1
-            return self.candidates[self.counter - 1]
+            if self.counter > len(self.candidates):
+                self.keyboard = None
+                self.attachment = None
+                return 'Конец показа'
+            person = self.candidates[self.counter - 1]
+            self.attachment = person['photos']
+            return person['name'] + ' ' + person['surname']
+
         # Возрастной интервал
         elif message is not None:
+            self.keyboard = None
             ages = re.match(r'(\d{2})\s*-\s*(\d{2})', message)
             if ages is not None and len(ages.groups()) == 2:
                 self.search_params['age_from'] = ages.group(1)
@@ -121,4 +141,4 @@ class VK_Bot:
         self.search_params = {}
         return f'Нашёл подходящих людей: {len(self.candidates)}' \
                f'\nПоказывать?' \
-               f'\n(Для демонстрации результатов поиска введи Y)'
+               f'\n(Для демонстрации результатов поиска введите П)'

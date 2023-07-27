@@ -20,17 +20,19 @@ def start_listener():
 
                 write_msg(event.user_id,
                           bots_dict[event.user_id].new_message(event.text),
-                          bots_dict[event.user_id].keyboard)
+                          attachment=bots_dict[event.user_id].attachment,
+                          keyboard=bots_dict[event.user_id].keyboard)
                 print('Текст: ', event.text)
                 if bots_dict[event.user_id].stop:
                     break
                 if ready_to_search(event.user_id):
                     write_msg(event.user_id,
                               bots_dict[event.user_id].find_candidates(),
-                              bots_dict[event.user_id].keyboard)
+                              attachment=bots_dict[event.user_id].attachment,
+                              keyboard=bots_dict[event.user_id].keyboard)
 
 
-def write_msg(user_id, message, keyboard=None):
+def write_msg(user_id, message, attachment=None, keyboard=None):
     post = {
         'user_id': user_id,
         'message': message,
@@ -38,6 +40,14 @@ def write_msg(user_id, message, keyboard=None):
     }
     if keyboard is not None:
         post['keyboard'] = keyboard.get_keyboard()
+
+    if attachment is not None:
+        for photo in attachment:
+            if photo is not None:
+                post['attachment'] = photo
+                post['random_id'] = randrange(10 ** 7)
+                vk.method('messages.send', post)
+        return
     vk.method('messages.send', post)
 
 

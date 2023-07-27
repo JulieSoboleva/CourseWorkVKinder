@@ -22,7 +22,6 @@ class Clients(Base):
 class Queries(Base):
     __tablename__ = 'queries'
 
-    # добавить констрейнт на уникальный набор параметров?
     id = sa.Column(sa.BigInteger, primary_key=True)
     client_id = sa.Column(sa.BigInteger,
                           sa.ForeignKey('clients.id', ondelete='NO ACTION'),
@@ -57,11 +56,12 @@ class Persons(Base):
 class Candidates(Base):
     __tablename__ = 'candidates'
 
+    # id = sa.Column(sa.BigInteger, primary_key=True)
     query_id = sa.Column(sa.BigInteger,
-                         sa.ForeignKey('queries.id', ondelete='NO ACTION'),
+                         sa.ForeignKey('queries.id', ondelete='CASCADE'),
                          primary_key=True)
     person_id = sa.Column(sa.BigInteger,
-                          sa.ForeignKey('persons.id', ondelete='NO ACTION'),
+                          sa.ForeignKey('persons.id', ondelete='CASCADE'),
                           primary_key=True)
     query = relationship('Queries', back_populates='persons')
     person = relationship('Persons', back_populates='queries')
@@ -70,11 +70,12 @@ class Candidates(Base):
 class Favourites(Base):
     __tablename__ = 'favourites'
 
+    # id = sa.Column(sa.BigInteger, primary_key=True)
     client_id = sa.Column(sa.BigInteger,
-                          sa.ForeignKey('clients.id', ondelete='NO ACTION'),
+                          sa.ForeignKey('clients.id', ondelete='CASCADE'),
                           primary_key=True)
     person_id = sa.Column(sa.BigInteger,
-                          sa.ForeignKey('persons.id', ondelete='NO ACTION'),
+                          sa.ForeignKey('persons.id', ondelete='CASCADE'),
                           primary_key=True)
     client = relationship('Clients', back_populates='persons')
     person = relationship('Persons', back_populates='clients')
