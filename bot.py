@@ -18,7 +18,7 @@ class VK_Bot:
                             last_name=info[0]['last_name'], city=self._CITY,
                             gender='Ж' if info[0]['sex'] == 1 else 'М')
         self._COMMANDS = ['ПРИВЕТ', 'М', 'Ж', '+', 'ПОКА']
-        self._VK_FINDER = VK_Finder(app_token=token, user_id=client_id)
+        self._VK_FINDER = VK_Finder(app_token=app_token, user_id=client_id)
         self.search_params = {}
         self.stop = False
 
