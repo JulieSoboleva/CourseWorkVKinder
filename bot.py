@@ -31,14 +31,11 @@ class VK_Bot:
         elif (message.upper() == self._COMMANDS[1] or
               message.upper() == self._COMMANDS[2]):
             self.search_params['gender'] = message.upper()
-            return f'В каком городе будем искать? ' \
-                   f'(Введи + если в твоём городе ({self._CITY}) или ' \
-                   f'название населённого пункта в формате: "@Пермь")'
+            return self.get_next_question()
         # Свой город
         elif message.upper() == self._COMMANDS[3]:
             self.search_params['city'] = self._CITY
-            return f'Укажи возрастной интервал в формате: "20 - 40".' \
-                   f'(Минимальный возраст - 16 лет, максимальный - 99)'
+            return self.get_next_question()
         # Пока
         elif message.upper() == self._COMMANDS[4]:
             return f"Пока-пока, {self._USERNAME}!"
@@ -54,8 +51,23 @@ class VK_Bot:
             if len(ages.groups()) == 2:
                 self.search_params['age_from'] = ages.group(1)
                 self.search_params['age_to'] = ages.group(2)
-                return 'Возрастной интервал задан. Начинаю поиск...'
+                return self.get_next_question()
             return "Не понимаю о чем вы..."
+
+    def get_next_question(self) -> str:
+        if self.search_params.get('gender') is None:
+            return 'Кого ты ищешь? (Введи М или Ж)'
+        if self.search_params.get('city') is None:
+            return f'В каком городе будем искать? ' \
+                   f'(Введи + если в твоём городе ({self._CITY}) или ' \
+                   f'название населённого пункта в формате: "@Пермь")'
+        if self.search_params.get('age_from') is None:
+            return f'Укажи возрастной интервал в формате: "20 - 40".' \
+                   f'(Минимальный возраст - 16 лет, максимальный - 99)'
+        if self.search_params.get('age_to') is None:
+            return f'Укажи возрастной интервал в формате: "20 - 40".' \
+                   f'(Минимальный возраст - 16 лет, максимальный - 99)'
+        return 'Все параметры заданы. Пошёл искать...'
 
     def get_candidates_list(self):
         query_id = self._DB.has_query(self._USER_ID,
