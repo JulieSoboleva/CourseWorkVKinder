@@ -42,8 +42,7 @@ class VK_Bot:
         # Другой населённый пункт
         elif message.startswith('@'):
             self.search_params['city'] = message[1:].capitalize()
-            return f'Укажи возрастной интервал в формате: "20 - 40".' \
-                   f'(Минимальный возраст - 16 лет, максимальный - 99)'
+            return self.get_next_question()
         # Возрастной интервал
         elif message is not None:
             ages = re.match(r'(\d{2})\s*-\s*(\d{2})', message)
