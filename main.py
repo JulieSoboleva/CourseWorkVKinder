@@ -24,8 +24,7 @@ def start_listener():
                 if bots_dict[event.user_id].stop:
                     break
                 if ready_to_search(event.user_id):
-                    bots_dict[event.user_id].get_candidates_list()
-                    bots_dict[event.user_id].search_params = {}
+                    bots_dict[event.user_id].show_candidates()
 
 
 def write_msg(user_id, message):

@@ -49,7 +49,6 @@ class VK_Finder:
             'relation': 6,
         }
         url = 'https://api.vk.com/method/users.search'
-        print('In get_pretendents')
         try:
             response = requests.get(url=url,
                                     params={**self.params, **params}).json()
@@ -63,12 +62,10 @@ class VK_Finder:
                     profile_url = f"https://vk.com/id{item['id']}"
                     photos = self.get_photo_data(item['id'])
                     if photos:
-                        first_name = item['first_name']
-                        last_name = item['last_name']
-                        city = city
                         pretendents.append({
-                            'name': first_name,
-                            'surname': last_name,
+                            'id': item['id'],
+                            'name': item['first_name'],
+                            'surname': item['last_name'],
                             'url': profile_url,
                             'photos': photos
                         })

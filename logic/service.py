@@ -46,26 +46,33 @@ class Service:
         print('Запрос сохранён в БД')
         return query.id
 
-    def add_person(self, vk_user_id, first_name, last_name, city, url, photos):
-        person = Persons(vk_id=vk_user_id, name=first_name, surname=last_name,
-                         # age=age, gender=gender, url  city=city,
-                         photo_1_link=photos[0], photo_2_link=photos[1], photo_3_link=photos[2])
-        self.session.add(person)
-        # self.session.query(Persons).folter_by(id=person.id).update({
-        #     'photo_1_link': photos[0],
-        #     'photo_2_link': photos[1],
-        #     'photo_3_link': photos[2]
-        # })
+    def add_persons(self, query_id, candidates):
+        for person in candidates:
+            person = Persons(id=person['id'], name=person['name'],
+                             surname=person['surname'],
+                             profile_url=person['url'],
+                             photo_1_link=person['photos'][0],
+                             photo_2_link=person['photos'][1],
+                             photo_3_link=person['photos'][2])
+            self.session.add(person)
+            self.session.add(candidates(query_id=query_id, person_id=person.id))
         self.session.commit()
-        return person.id
 
-    def get_persons(self, query_id):
-        return []
-
-
-
-
-    # client_id = service.add_client(12345, 'Иван')
-    # service.add_query(client_id, 'Ж', 'Москва')
-    # person_id = service.add_person(654321, 'Алла', 'Иванова', '')
-
+    def get_persons(self, query_id) -> list:
+        result = self.session.query(Persons) \
+            .join(candidates, and_(candidates.query_id == query_id,
+                                   Persons.id == candidates.person_id)).all()
+        if result is None:
+            print('Не нашёл ни одного кандидата, связанного с этим запросом.')
+            return []
+        pretendents = []
+        for person in result:
+            pretendents.append({
+                'id': person.id,
+                'name': person.name,
+                'surname': person.surname,
+                'url': person.profile_url,
+                'photos': [person.photo_1_link,
+                           person.photo_2_link,
+                           person.photo_3_link]})
+        return pretendents

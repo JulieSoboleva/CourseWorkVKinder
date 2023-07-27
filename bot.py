@@ -49,7 +49,7 @@ class VK_Bot:
         elif message is not None:
             ages = re.match(r'(\d{2})\s*-\s*(\d{2})', message)
             print('groups count =', len(ages.groups()))
-            if len(ages.groups()) == 2:
+            if ages is not None and len(ages.groups()) == 2:
                 self.search_params['age_from'] = ages.group(1)
                 self.search_params['age_to'] = ages.group(2)
                 return self.get_next_question()
@@ -77,19 +77,22 @@ class VK_Bot:
                                       self.search_params['age_from'],
                                       self.search_params['age_to'])
         if query_id != 0:
-            return self._DB.get_persons()
+            return self._DB.get_persons(query_id)
 
-        self._DB.add_query(self._USER_ID, self.search_params['gender'],
-                           self.search_params['city'],
-                           self.search_params['age_from'],
-                           self.search_params['age_to'])
-
+        query_id = self._DB.add_query(self._USER_ID,
+                                      self.search_params['gender'],
+                                      self.search_params['city'],
+                                      self.search_params['age_from'],
+                                      self.search_params['age_to'])
         candidates = self._VK_FINDER.get_pretendents(
             self.search_params['age_from'], self.search_params['age_to'],
             self.search_params['gender'], self.search_params['city'])
 
-        for person in candidates:
-            # self._DB.add_person()
-            print(person)
+        self._DB.add_persons(query_id, candidates)
+        print('Список сформирован и записан в БД')
+        return candidates
 
-        print('Список сформирован')
+    def show_candidates(self):
+        candidates = self.get_candidates_list()
+        print(candidates)
+        self.search_params = {}
