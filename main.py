@@ -66,5 +66,5 @@ def ready_to_search(user_id) -> bool:
 if __name__ == '__main__':
     service = Service()
     service.recreate_tables()
-    # start_listener()
-    # service.session.close_all()
+    start_listener()
+    service.session.close_all()

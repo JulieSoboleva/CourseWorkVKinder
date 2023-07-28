@@ -14,14 +14,10 @@ class Service:
         print('Коннект к БД осуществлён')
 
     def recreate_tables(self):
-        print('In recreate_tables')
-        try:
-            Base.metadata.drop_all(self.engine, )
-            print('Таблицы удалены')
-            Base.metadata.create_all(self.engine)
-            print('Таблицы созданы')
-        except Exception as err:
-            print(err)
+        Base.metadata.drop_all(self.engine, )
+        print('Таблицы удалены')
+        Base.metadata.create_all(self.engine)
+        print('Таблицы созданы')
 
     def add_client(self, vk_id, first_name, last_name, city, gender):
         client = self.session.query(Clients).filter_by(id=vk_id).first()
