@@ -13,8 +13,11 @@ class Service:
         self.session = Session()
 
     def recreate_tables(self):
-        Base.metadata.drop_all(self.engine)
-        print('Таблицы удалены')
+        try:
+            Base.metadata.drop_all(self.engine, )
+            print('Таблицы удалены')
+        except Exception:
+            pass
         Base.metadata.create_all(self.engine)
         print('Таблицы созданы')
 
