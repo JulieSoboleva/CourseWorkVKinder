@@ -11,15 +11,17 @@ class Service:
                                        'localhost:5432/vkinder_db')
         Session = sessionmaker(bind=self.engine)
         self.session = Session()
+        print('Коннект к БД осуществлён')
 
     def recreate_tables(self):
+        print('In recreate_tables')
         try:
             Base.metadata.drop_all(self.engine, )
             print('Таблицы удалены')
-        except Exception:
-            pass
-        Base.metadata.create_all(self.engine)
-        print('Таблицы созданы')
+            Base.metadata.create_all(self.engine)
+            print('Таблицы созданы')
+        except Exception as err:
+            print(err)
 
     def add_client(self, vk_id, first_name, last_name, city, gender):
         client = self.session.query(Clients).filter_by(id=vk_id).first()
