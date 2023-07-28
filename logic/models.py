@@ -56,7 +56,6 @@ class Persons(Base):
 class Candidates(Base):
     __tablename__ = 'candidates'
 
-    # id = sa.Column(sa.BigInteger, primary_key=True)
     query_id = sa.Column(sa.BigInteger,
                          sa.ForeignKey('queries.id', ondelete='CASCADE'),
                          primary_key=True)
@@ -70,7 +69,6 @@ class Candidates(Base):
 class Favourites(Base):
     __tablename__ = 'favourites'
 
-    # id = sa.Column(sa.BigInteger, primary_key=True)
     client_id = sa.Column(sa.BigInteger,
                           sa.ForeignKey('clients.id', ondelete='CASCADE'),
                           primary_key=True)

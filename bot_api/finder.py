@@ -37,13 +37,21 @@ class VK_Finder:
         Получает id претендентов исходя из полученных ботом параметров
         :return:
         """
+        if int(age_from) < 16:
+            age_from = 16
+        if int(age_to) > 99:
+            age_to = 99
+        elif int(age_to) < 16:
+            age_to = 16
+        if int(age_from) > int(age_to):
+            age_from, age_to = age_to, age_from
         params = {
             'count': '1000',
             'lang': 0,
             'sex': 1 if gender == 'Ж' else 2,
             'hometown': city,
-            'age_from': age_from if int(age_from) > 15 else 16,
-            'age_to': age_to if int(age_to) < 100 else 99,
+            'age_from': age_from,
+            'age_to': age_to,
             'has_photo': '1',
             'is_closed': False,
             'relation': 6,
@@ -71,7 +79,7 @@ class VK_Finder:
                         })
                 return pretendents
             else:
-                raise Exception('Никого не нашёл')
+                return []
         except Exception as err:
             print('Ошибка:\n', traceback.format_exc())
             return []

@@ -17,12 +17,10 @@ def start_listener():
             if event.to_me:
                 if bots_dict.get(event.user_id) is None:
                     bots_dict[event.user_id] = VK_Bot(event.user_id, vk)
-
                 write_msg(event.user_id,
                           bots_dict[event.user_id].new_message(event.text),
                           attachment=bots_dict[event.user_id].attachment,
                           keyboard=bots_dict[event.user_id].keyboard)
-                print('Текст: ', event.text)
                 if bots_dict[event.user_id].stop:
                     break
                 if ready_to_search(event.user_id):
@@ -32,7 +30,7 @@ def start_listener():
                               keyboard=bots_dict[event.user_id].keyboard)
 
 
-def write_msg(user_id, message, attachment=None, keyboard=None):
+def write_msg(user_id, message, attachment, keyboard):
     post = {
         'user_id': user_id,
         'message': message,
@@ -40,14 +38,8 @@ def write_msg(user_id, message, attachment=None, keyboard=None):
     }
     if keyboard is not None:
         post['keyboard'] = keyboard.get_keyboard()
-
     if attachment is not None:
-        for photo in attachment:
-            if photo is not None:
-                post['attachment'] = photo
-                post['random_id'] = randrange(10 ** 7)
-                vk.method('messages.send', post)
-        return
+        post['attachment'] = ','.join(attachment)
     vk.method('messages.send', post)
 
 
@@ -65,6 +57,7 @@ def ready_to_search(user_id) -> bool:
 
 if __name__ == '__main__':
     service = Service()
-    service.recreate_tables()
+    # service.drop_tables()
+    service.create_tables()
     start_listener()
-    service.session.close_all()
+    service.session.close()

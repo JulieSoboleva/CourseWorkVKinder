@@ -2,7 +2,8 @@ import re
 from bot_api.finder import VK_Finder
 from logic.service import Service
 from config import app_token
-from vk_api.keyboard import VkKeyboard, VkKeyboardColor, VkKeyboardButton
+from vk_api.keyboard import VkKeyboard, VkKeyboardColor
+
 
 class VK_Bot:
 
@@ -10,76 +11,102 @@ class VK_Bot:
         print("\nСоздан объект бота")
         info = vk_api.method('users.get', {'user_ids': client_id,
                                            'fields': 'sex,city'})
-        self._USER_ID = client_id
-        self._USERNAME = info[0]['first_name']
-        self._CITY = info[0]['city']['title']
-        self._DB = Service()
-        self._DB.add_client(vk_id=client_id, first_name=self._USERNAME,
-                            last_name=info[0]['last_name'], city=self._CITY,
-                            gender='Ж' if info[0]['sex'] == 1 else 'М')
-        self._COMMANDS = ['ПРИВЕТ', 'М', 'Ж', '+', 'ПОКА', 'П', 'В ИЗБРАННОЕ',
-                          'СЛЕДУЮЩИЙ', 'ТОЧНО НЕТ']
-        self._VK_FINDER = VK_Finder(app_token=app_token, user_id=client_id)
+        self.user_id = client_id
+        self.user_name = info[0]['first_name']
+        self.user_city = info[0]['city']['title']
+        self.db = Service()
+        self.query_id = 0
+        if self.db.find_client(client_id):
+            self.query_id = self.db.get_last_query(client_id)
+        else:
+            self.db.add_client(vk_id=client_id, first_name=self.user_name,
+                               last_name=info[0]['last_name'],
+                               city=self.user_city,
+                               gender='Ж' if info[0]['sex'] == 1 else 'М')
+        self.COMMANDS = ['ПРИВЕТ', 'М', 'Ж', '+', 'ПОКА', 'В ИЗБРАННОЕ',
+                         'СЛЕДУЮЩИЙ', 'ТОЧНО НЕТ', 'СТОП', 'ПРЕДЫДУЩИЙ',
+                         'НОВЫЙ ПОИСК']
+        self.vk_finder = VK_Finder(app_token=app_token, user_id=client_id)
         self.search_params = {}
         self.stop = False
-        self.query_id = 0
-        self.keyboard = None
         self.counter = 0
         self.candidates = None
+        self.keyboard = None
         self.attachment = None
 
     def new_message(self, message) -> str:
+        message = message.upper().strip()
         # Привет
-        if message.upper() == self._COMMANDS[0]:
-            self.keyboard = None
+        if message == self.COMMANDS[0]:
             self.attachment = None
-            return f'Привет, {self._USERNAME}! ' \
-                   f'Я могу помочь тебе найти человека.' \
-                   f'\nКого ты ищешь? (Введи М или Ж)'
+            if self.query_id == 0:
+                self.keyboard = None
+                text = f'Привет, {self.user_name}!\n' \
+                       f'Я могу помочь тебе найти человека.' \
+                       f'\n\nКого ты ищешь? (Введи М или Ж)'
+            else:
+                self.keyboard = self.create_query_buttons()
+                text = f'Привет, {self.user_name}!\nДавно не виделись!\n' \
+                       f'Показать результаты предыдущего запроса ' \
+                       f'или начнём новый поиск?'
+            return text
+        elif message == self.COMMANDS[10]:
+            return 'Кого на этот раз будем искать? (Введи М или Ж)'
         # Пол
-        elif (message.upper() == self._COMMANDS[1] or
-              message.upper() == self._COMMANDS[2]):
-            self.search_params['gender'] = message.upper()
+        elif message == self.COMMANDS[1] or message == self.COMMANDS[2]:
+            self.search_params['gender'] = message
             self.attachment = None
             self.keyboard = None
             return self.get_next_question()
         # Свой город
-        elif message.upper() == self._COMMANDS[3]:
-            self.search_params['city'] = self._CITY
+        elif message == self.COMMANDS[3]:
+            self.search_params['city'] = self.user_city
             self.attachment = None
             self.keyboard = None
             return self.get_next_question()
         # Пока
-        elif message.upper() == self._COMMANDS[4]:
-            self.stop = True
+        elif message == self.COMMANDS[4]:
+            # self.stop = True
             self.keyboard = None
+            text = f"Пока-пока, {self.user_name}!"
+            if self.counter <= len(self.candidates):
+                text += f'\n\nЭто ещё не все кандидаты, ' \
+                        'но ты сможешь вернуться к просмотру позже.'
             self.attachment = None
             self.candidates = None
-            return f"Пока-пока, {self._USERNAME}!"
+            self.counter = 0
+            return text
         # Другой населённый пункт
         elif message.startswith('@'):
             self.search_params['city'] = message[1:].capitalize()
             self.attachment = None
             self.keyboard = None
             return self.get_next_question()
-        elif message.upper() in (self._COMMANDS[5], self._COMMANDS[6],
-                                 self._COMMANDS[7], self._COMMANDS[8]):
-            if message.upper() == self._COMMANDS[6]:
-                self._DB.add_to_favourites(
-                    self._USER_ID, self.candidates[self.counter-1]['id'])
-            elif message.upper() == self._COMMANDS[8]:
-                self._DB.delete_from_candidates(
+        elif message in (self.COMMANDS[5], self.COMMANDS[6],
+                         self.COMMANDS[7], self.COMMANDS[9]):
+            if message == self.COMMANDS[5]:
+                self.db.add_to_favourites(
+                    self.user_id, self.candidates[self.counter-1]['id'])
+            elif message == self.COMMANDS[7]:
+                self.db.delete_from_candidates(
                     self.query_id, self.candidates[self.counter-1]['id'])
+            elif message == self.COMMANDS[9]:
+                self.candidates = self.db.get_persons(self.query_id)
             self.keyboard = self.create_buttons()
             self.counter += 1
             if self.counter > len(self.candidates):
                 self.keyboard = None
                 self.attachment = None
-                return 'Конец показа'
+                text = '\n'.join(self.db.get_favourites(self.user_id,
+                                                        self.query_id))
+                return 'Конец показа\n\nСписок избранных:\n' + text
             person = self.candidates[self.counter - 1]
             self.attachment = person['photos']
             return person['name'] + ' ' + person['surname']
-
+        # Выход из программы
+        elif message == self.COMMANDS[8]:
+            self.stop = True
+            return 'Всё-всё. Выключаюсь.'
         # Возрастной интервал
         elif message is not None:
             self.keyboard = None
@@ -92,53 +119,64 @@ class VK_Bot:
 
     def create_buttons(self):
         keyboard = VkKeyboard(one_time=True)
-        keyboard.add_button('В избранное', VkKeyboardColor.POSITIVE)
-        keyboard.add_button('Следующий', VkKeyboardColor.PRIMARY)
-        keyboard.add_button('Точно нет', VkKeyboardColor.NEGATIVE)
+        keyboard.add_button(self.COMMANDS[5], VkKeyboardColor.POSITIVE)
+        keyboard.add_button(self.COMMANDS[6], VkKeyboardColor.PRIMARY)
+        keyboard.add_button(self.COMMANDS[7], VkKeyboardColor.NEGATIVE)
+        return keyboard
+
+    def create_query_buttons(self):
+        keyboard = VkKeyboard(one_time=True)
+        keyboard.add_button(self.COMMANDS[9], VkKeyboardColor.SECONDARY)
+        keyboard.add_button(self.COMMANDS[10], VkKeyboardColor.SECONDARY)
         return keyboard
 
     def get_next_question(self) -> str:
         if self.search_params.get('gender') is None:
-            return 'Кого ты ищешь? (Введи М или Ж)'
+            return 'Кого будем искать? (Введи М или Ж)'
         if self.search_params.get('city') is None:
-            return f'В каком городе будем искать? ' \
-                   f'(Введи + если в твоём городе ({self._CITY}) или ' \
+            return f'В каком городе будем искать?\n' \
+                   f'(Введи "+" если в твоём городе ({self.user_city}) или ' \
                    f'название населённого пункта в формате: "@Пермь")'
         if self.search_params.get('age_from') is None:
-            return f'Укажи возрастной интервал в формате: "20 - 40".' \
+            return f'Укажи возрастной интервал в формате: "20 - 40".\n' \
                    f'(Минимальный возраст - 16 лет, максимальный - 99)'
         if self.search_params.get('age_to') is None:
-            return f'Укажи возрастной интервал в формате: "20 - 40".' \
+            return f'Укажи возрастной интервал в формате: "20 - 40".\n' \
                    f'(Минимальный возраст - 16 лет, максимальный - 99)'
-        return 'Все параметры заданы. Пошёл искать...'
+        return 'Все параметры заданы. Начинаю поиск...'
 
     def get_candidates_list(self):
-        self.query_id = self._DB.has_query(self._USER_ID,
-                                           self.search_params['gender'],
-                                           self.search_params['city'],
-                                           self.search_params['age_from'],
-                                           self.search_params['age_to'])
+        self.query_id = self.db.has_query(self.user_id,
+                                          self.search_params['gender'],
+                                          self.search_params['city'],
+                                          self.search_params['age_from'],
+                                          self.search_params['age_to'])
         if self.query_id != 0:
-            return self._DB.get_persons(self.query_id)
+            return self.db.get_persons(self.query_id)
 
-        self.query_id = self._DB.add_query(self._USER_ID,
-                                           self.search_params['gender'],
-                                           self.search_params['city'],
-                                           self.search_params['age_from'],
-                                           self.search_params['age_to'])
-        candidates = self._VK_FINDER.get_pretendents(
+        self.query_id = self.db.add_query(self.user_id,
+                                          self.search_params['gender'],
+                                          self.search_params['city'],
+                                          self.search_params['age_from'],
+                                          self.search_params['age_to'])
+        candidates = self.vk_finder.get_pretendents(
             self.search_params['age_from'], self.search_params['age_to'],
-            self.search_params['gender'], self.search_params['city'])
-
-        self._DB.add_persons(self.query_id, candidates)
+            self.search_params['gender'], self.search_params['city']
+        )
+        self.db.add_persons(self.query_id, candidates)
         print('Список сформирован и записан в БД')
-        return candidates
+        return self.db.get_persons(self.query_id)
 
     def find_candidates(self) -> str:
         self.counter = 0
         self.candidates = self.get_candidates_list()
-        # print(candidates)
         self.search_params = {}
-        return f'Нашёл подходящих людей: {len(self.candidates)}' \
-               f'\nПоказывать?' \
-               f'\n(Для демонстрации результатов поиска введите П)'
+        if len(self.candidates) < 1:
+            return f'Не нашёл подходящих под запрос людей.\n\n' \
+                   f'Попробуй сформировать новый запрос.'
+        self.keyboard = self.create_buttons()
+        self.counter += 1
+        person = self.candidates[self.counter - 1]
+        self.attachment = person['photos']
+        return f'Нашёл подходящих людей: {len(self.candidates)}\n\n' \
+               + person['name'] + ' ' + person['surname']

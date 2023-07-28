@@ -11,24 +11,35 @@ class Service:
                                        'localhost:5432/vkinder_db')
         Session = sessionmaker(bind=self.engine)
         self.session = Session()
-        print('Коннект к БД осуществлён')
 
-    def recreate_tables(self):
+    def drop_tables(self):
         Base.metadata.drop_all(self.engine, )
         print('Таблицы удалены')
+
+    def create_tables(self):
         Base.metadata.create_all(self.engine)
         print('Таблицы созданы')
 
-    def add_client(self, vk_id, first_name, last_name, city, gender):
+    def find_client(self, vk_id) -> bool:
         client = self.session.query(Clients).filter_by(id=vk_id).first()
         if client is not None:
             print(f'Клиент с id = {vk_id} уже есть в БД')
-            return
+            return True
+        return False
+
+    def add_client(self, vk_id, first_name, last_name, city, gender):
         client = Clients(id=vk_id, name=first_name, surname=last_name,
                          city=city, gender=gender)
         self.session.add(client)
         self.session.commit()
         print(f'Клиент с id = {vk_id} записан в БД')
+
+    def get_last_query(self, client_id) -> int:
+        query = self.session.query(Queries).filter_by(client_id=client_id).\
+            order_by(Queries.query_date.desc()).first()
+        if query is None:
+            return 0
+        return query.id
 
     def has_query(self, client_id, gender, city, age_from, age_to):
         query = self.session.query(Queries).filter(
@@ -61,9 +72,9 @@ class Service:
                             profile_url=person['url'],
                             photo_1_link=person['photos'][0],
                             photo_2_link=person['photos'][1]
-                            if len(person['photos']) > 1 else None,
+                            if len(person['photos']) > 1 else '',
                             photo_3_link=person['photos'][2]
-                            if len(person['photos']) > 2 else None)
+                            if len(person['photos']) > 2 else '')
         self.session.add(candidate)
         link = Candidates(query_id=query_id)
         link.person = candidate
@@ -116,3 +127,17 @@ class Service:
                            person.photo_2_link,
                            person.photo_3_link]})
         return pretendents
+
+    def get_favourites(self, client_id, query_id) -> list:
+        results = self.session.query(Persons.name, Persons.surname,
+                                     Persons.profile_url). \
+            join(Candidates, and_(Candidates.person_id == Persons.id,
+                                  Candidates.query_id == query_id)). \
+            join(Favourites, and_(Favourites.person_id == Persons.id,
+                                  Favourites.client_id == client_id)).all()
+        if results is None:
+            return []
+        str_list = []
+        for row in results:
+            str_list.append(f'{row.name} {row.surname}\n{row.profile_url}')
+        return str_list
