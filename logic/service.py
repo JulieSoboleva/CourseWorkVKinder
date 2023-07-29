@@ -41,7 +41,15 @@ class Service:
             return 0
         return query.id
 
-    def has_query(self, client_id, gender, city, age_from, age_to):
+    def get_query_params(self, query_id) -> str:
+        result = self.session.query(Queries).filter_by(id=query_id).first()
+        if result is None:
+            return ''
+        return f'Параметры запроса:\n' \
+               f'{"мужчина" if result.gender == "М" else "женщина"}, ' \
+               f'возраст: {result.age_from} - {result.age_to}, {result.city}'
+
+    def has_query(self, client_id, gender, city, age_from, age_to) -> int:
         query = self.session.query(Queries).filter(
             and_(Queries.client_id == client_id, Queries.city == city,
                  Queries.gender == gender, Queries.age_from == age_from,
@@ -85,7 +93,6 @@ class Service:
     def has_person(self, person_id) -> bool:
         query = self.session.query(Persons).filter_by(id=person_id).count()
         if query == 1:
-            print('Человек с такими vk_user_id уже есть в БД.')
             return True
         return False
 
@@ -109,10 +116,13 @@ class Service:
         self.session.delete(link)
         self.session.commit()
 
-    def get_persons(self, query_id) -> list:
-        result = self.session.query(Persons) \
-            .join(Candidates, and_(Candidates.query_id == query_id,
-                                   Persons.id == Candidates.person_id)).all()
+    def get_persons(self, query_id, client_id) -> list:
+        result = self.session.query(Persons). \
+            join(Candidates, and_(Candidates.query_id == query_id,
+                                   Persons.id == Candidates.person_id)). \
+            join(Favourites, and_(Favourites.person_id == Persons.id,
+                                  Favourites.client_id == client_id),
+                 isouter=True).where(Favourites.client_id == None).all()
         if result is None:
             print('Не нашёл ни одного кандидата, связанного с этим запросом.')
             return []
