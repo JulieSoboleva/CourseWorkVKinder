@@ -24,9 +24,9 @@ class VK_Bot:
                                last_name=info[0]['last_name'],
                                city=self.user_city,
                                gender='Ж' if info[0]['sex'] == 1 else 'М')
-        self.COMMANDS = ['М', 'Ж', '+', 'ПОКА', 'В ИЗБРАННОЕ', 'СЛЕДУЮЩИЙ',
+        self.COMMANDS = ['М', 'Ж', '+', 'ПРАВИЛА', 'В ИЗБРАННОЕ', 'СЛЕДУЮЩИЙ',
                          'ТОЧНО НЕТ', 'СТОП', 'ПРЕДЫДУЩИЙ', 'НОВЫЙ ПОИСК',
-                         'НАЧАТЬ']
+                         'ЗАПРОС', 'ВЫХОД']
         self.vk_finder = VK_Finder(app_token=app_token, user_id=client_id)
         self.start = True
         self.stop = False
@@ -37,60 +37,60 @@ class VK_Bot:
 
     def new_message(self, message) -> str:
         message = message.upper().strip()
-        if self.start or message == self.COMMANDS[10]:
+        if self.start:
             self.start = False
-            self.attachment = None
+            self.reset()
             if self.query_id == 0:
-                self.keyboard = None
                 text = f'Привет, {self.user_name}!\n' \
-                       f'Я могу помочь тебе найти человека.\n' \
-                       f'Для этого нужно будет ответить на несколько вопросов.\n' \
-                       f'Если захочешь прервать текущий поиск ' \
-                       f'или просмотр кандидатур, набери "пока".\n' \
-                       f'Для прекращения работы программы, введи "стоп".\n' \
-                       f'\nИтак, кого ты ищешь? (Введи М или Ж)'
+                       f'Я могу помочь вам найти человека, не состоящего ' \
+                       f'в отношениях.\nДля этого нужно будет ответить на ' \
+                       f'несколько вопросов.\nДля прекращения работы ' \
+                       f'программы введите "стоп".\nДля получения инструкции ' \
+                       f'по командам введите "правила".' \
+                       f'\nИтак, кого вы ищете? (Введи М или Ж)'
             else:
                 self.keyboard = self.create_query_buttons()
                 text = f'Привет, {self.user_name}!\nДавно не виделись!\n' \
-                       f'Показать результаты предыдущего запроса ' \
-                       f'или начнём новый поиск?'
+                       f'Показать результаты одного из предыдущих запросов' \
+                       f' или начнём новый поиск?'
             return text
+        # Новый поиск постоянного клиента
         elif message == self.COMMANDS[9]:
-            self.keyboard = None
+            self.reset()
             return 'Кого на этот раз будем искать? (Введи М или Ж)'
         # Пол
         elif message == self.COMMANDS[0] or message == self.COMMANDS[1]:
             self.search_params['gender'] = message
-            self.attachment = None
-            self.keyboard = None
+            self.reset()
             return self.get_next_question()
         # Свой город
         elif message == self.COMMANDS[2]:
             self.search_params['city'] = self.user_city
-            self.attachment = None
-            self.keyboard = None
+            self.reset()
             return self.get_next_question()
-        # Пока
-        elif message == self.COMMANDS[3]:
-            self.keyboard = None
-            text = f"Пока-пока, {self.user_name}!"
-            if self.counter <= len(self.candidates):
-                text += f'\n\nЭто ещё не все кандидаты, ' \
-                        'но ты сможешь вернуться к просмотру позже,' \
-                        ' набрав "начать".'
-            self.attachment = None
-            self.candidates = None
-            self.counter = 0
-            return text
         # Другой населённый пункт
-        elif message.startswith('@'):
+        elif message.startswith('+'):
             self.search_params['city'] = message[1:].capitalize()
             self.attachment = None
             self.keyboard = None
             return self.get_next_question()
+        # Стоп
+        elif message == self.COMMANDS[7]:
+            self.attachment = None
+            self.keyboard = self.create_quite_buttons()
+            text = f'{self.user_name}, вы уверены, что хотите остановить ' \
+                   'работу бота?\nДля нового поиска просто начните вводить' \
+                   ' его параметры в произвольном порядке.\nДля получения ' \
+                   'списка запросов из БД напишите "запрос".'
+            return text
+        # Выход из программы
+        elif message == self.COMMANDS[11]:
+            self.stop = True
+            self.reset()
+            return 'Выключаюсь.'
         # Демонстрация фоток
-        elif message in (self.COMMANDS[4], self.COMMANDS[5],
-                         self.COMMANDS[6], self.COMMANDS[8]):
+        elif message in (self.COMMANDS[4], self.COMMANDS[5], self.COMMANDS[6])\
+                or message.startswith('№'):
             params = ''
             if message == self.COMMANDS[4]:
                 self.db.add_to_favourites(
@@ -98,7 +98,11 @@ class VK_Bot:
             elif message == self.COMMANDS[6]:
                 self.db.delete_from_candidates(
                     self.query_id, self.candidates[self.counter-1]['id'])
-            elif message == self.COMMANDS[8]:
+            elif message.startswith('№'):
+                try:
+                    self.query_id = int(message[1:])
+                except ValueError:
+                    return 'После № должно быть указано число.'
                 self.candidates = self.db.get_persons(self.query_id,
                                                       self.user_id)
                 params = self.db.get_query_params(self.query_id)
@@ -118,12 +122,30 @@ class VK_Bot:
             person = self.candidates[self.counter - 1]
             self.attachment = person['photos']
             return params + person['name'] + ' ' + person['surname']
-        # Выход из программы
-        elif message == self.COMMANDS[7]:
-            self.stop = True
+        # Правила игры
+        elif message == self.COMMANDS[3]:
             self.keyboard = None
             self.attachment = None
-            return 'Всё-всё. Выключаюсь.'
+            return '''
+                Бот начинает работать при вводе любого первого сообщения от пользователя.
+                * Для указания пола кандидата напишите "М" или "Ж".
+                * Для указания возраста - введите диапазон в формате "20-25".
+                * Для выбора локации поиска введите "+" или "+Город"
+                * При просмотре найденных кандидатов можно добавлять их в список избранных
+                или удалять из дальнейшего просмотра при помощи кнопок "В ИЗБРАННОЕ" и "ТОЧНО НЕТ".
+                 * Для прекращения текущего сеанса работы введите "стоп".
+                 * Для запуска нового поиска начните вводить параметры запроса в произвольном порядке.
+                 * Чтобы вернуться к любому из своих запросов, введите "запрос". 
+                 \n\n"Продолжаем разговор!" - как говорит мой друг Карлсон.'''
+        # Выбор запроса
+        elif message in (self.COMMANDS[8], self.COMMANDS[10]):
+            self.keyboard = None
+            self.attachment = None
+            text = self.db.get_queries(self.user_id)
+            if text != '':
+                return text + '\n\nВыберите запрос, к которому хотите вернуться,' \
+                              ' и введите его номер в формате "№1"'
+            return 'В БД нет запросов данного клиента.'
         # Возрастной интервал
         elif message is not None:
             self.keyboard = None
@@ -133,7 +155,12 @@ class VK_Bot:
                 self.search_params['age_from'] = ages.group(1)
                 self.search_params['age_to'] = ages.group(2)
                 return self.get_next_question()
-            return "Не понимаю о чем ты..."
+            return 'Не понимаю о чем вы... Наберите "правила" для получения' \
+                   ' справки по работе с ботом.'
+
+    def reset(self):
+        self.keyboard = None
+        self.attachment = None
 
     def create_buttons(self):
         keyboard = VkKeyboard(one_time=True)
@@ -148,25 +175,30 @@ class VK_Bot:
         keyboard.add_button(self.COMMANDS[9], VkKeyboardColor.SECONDARY)
         return keyboard
 
+    def create_quite_buttons(self):
+        keyboard = VkKeyboard(one_time=True)
+        keyboard.add_button(self.COMMANDS[11], VkKeyboardColor.SECONDARY)
+        return keyboard
+
     def get_next_question(self) -> str:
         if self.search_params.get('gender') is None:
             return 'Кого будем искать? (Введи М или Ж)'
         if self.search_params.get('city') is None:
             return f'В каком городе будем искать?\n' \
-                   f'(Введи "+" если в твоём городе ({self.user_city}) или ' \
-                   f'название населённого пункта в формате: "@Пермь")'
+                   f'(Введите "+", если в вашем городе ({self.user_city}) или ' \
+                   f'название населённого пункта в формате: "+Волгоград")'
         if self.search_params.get('age_from') is None:
-            return f'Укажи возрастной интервал в формате: "20 - 40".\n' \
+            return f'Укажите возрастной интервал в формате: "20 - 40".\n' \
                    f'(Минимальный возраст - 16 лет, максимальный - 99)'
         if self.search_params.get('age_to') is None:
-            return f'Укажи возрастной интервал в формате: "20 - 40".\n' \
+            return f'Укажите возрастной интервал в формате: "20 - 40".\n' \
                    f'(Минимальный возраст - 16 лет, максимальный - 99)'
         self.check_age_params()
         return f'Все параметры заданы:\n' \
                f'{"мужчина" if self.search_params["gender"] == "М" else "женщина"},' \
                f' возраст: {self.search_params["age_from"]} - ' \
                f'{self.search_params["age_to"]}, {self.search_params["city"]}' \
-               f'\n\nНачинаю поиск...'
+               f'\n\nНачинаю поиск... Дождитесь ответа.'
 
     def get_candidates_list(self):
         self.query_id = self.db.has_query(self.user_id,

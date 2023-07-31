@@ -49,6 +49,18 @@ class Service:
                f'{"мужчина" if result.gender == "М" else "женщина"}, ' \
                f'возраст: {result.age_from} - {result.age_to}, {result.city}'
 
+    def get_queries(self, client_id) -> str:
+        queries = self.session.query(Queries).filter_by(client_id=client_id).\
+            order_by(Queries.query_date.desc()).all()
+        if queries is None:
+            return ''
+        result = ''
+        for item in queries:
+            result += f'№{item.id} - ' \
+                      f'{"мужчина" if item.gender == "М" else "женщина"}, ' \
+                      f'возраст: {item.age_from} - {item.age_to}, {item.city}\n'
+        return result
+
     def has_query(self, client_id, gender, city, age_from, age_to) -> int:
         query = self.session.query(Queries).filter(
             and_(Queries.client_id == client_id, Queries.city == city,
