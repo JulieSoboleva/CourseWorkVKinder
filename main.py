@@ -4,14 +4,15 @@ import vk_api
 from vk_api.longpoll import VkLongPoll, VkEventType
 from logic.service import Service
 from config import group_token
+from log_module import logger
 
 vk = vk_api.VkApi(token=group_token)
 longpoll = VkLongPoll(vk)
 bots_dict = {}
 
 
+@logger(path='bot.log')
 def start_listener():
-    print("Сервер запущен")
     for event in longpoll.listen():
         if event.type == VkEventType.MESSAGE_NEW:
             if event.to_me:
@@ -30,6 +31,7 @@ def start_listener():
                               keyboard=bots_dict[event.user_id].keyboard)
 
 
+@logger(path='bot.log')
 def write_msg(user_id, message, attachment, keyboard):
     post = {
         'user_id': user_id,

@@ -1,11 +1,12 @@
 import sqlalchemy as sa
-from sqlalchemy import or_, and_
+from sqlalchemy import and_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import sessionmaker
 from .models import Clients, Base, Queries, Persons, Favourites, Candidates
 
 
 class Service:
+
     def __init__(self):
         self.engine = sa.create_engine('postgresql://postgres:postgres@'
                                        'localhost:5432/vkinder_db')

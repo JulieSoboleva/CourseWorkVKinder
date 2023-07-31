@@ -3,6 +3,7 @@ from bot_api.finder import VK_Finder
 from logic.service import Service
 from config import app_token
 from vk_api.keyboard import VkKeyboard, VkKeyboardColor
+from log_module import logger
 
 
 class VK_Bot:
@@ -35,6 +36,7 @@ class VK_Bot:
         self.keyboard = None
         self.attachment = None
 
+    @logger(path=__name__ + '.log')
     def new_message(self, message) -> str:
         message = message.upper().strip()
         if self.start:
@@ -91,10 +93,12 @@ class VK_Bot:
         elif message in (self.COMMANDS[4], self.COMMANDS[5], self.COMMANDS[6])\
                 or message.startswith('№'):
             params = ''
-            if message == self.COMMANDS[4]:
+            if (message == self.COMMANDS[4] and
+                    self.counter <= len(self.candidates)):
                 self.db.add_to_favourites(
                     self.user_id, self.candidates[self.counter-1]['id'])
-            elif message == self.COMMANDS[6]:
+            elif (message == self.COMMANDS[6] and
+                    self.counter <= len(self.candidates)):
                 self.db.delete_from_candidates(
                     self.query_id, self.candidates[self.counter-1]['id'])
             elif message.startswith('№'):
@@ -196,6 +200,7 @@ class VK_Bot:
                f'{self.search_params["age_to"]}, {self.search_params["city"]}' \
                f'\n\nНачинаю поиск... Дождитесь ответа.'
 
+    @logger(path=__name__ + '.log')
     def get_candidates_list(self):
         self.query_id = self.db.has_query(self.user_id,
                                           self.search_params['gender'],
@@ -217,6 +222,7 @@ class VK_Bot:
         print(f'Список сформирован и записан в БД. Кандидатов: {len(candidates)}')
         return self.db.get_persons(self.query_id, self.user_id)
 
+    @logger(path=__name__ + '.log')
     def find_candidates(self) -> str:
         self.counter = 0
         self.candidates = self.get_candidates_list()
@@ -231,6 +237,7 @@ class VK_Bot:
         return f'Нашёл подходящих людей: {len(self.candidates)}\n\n' \
                + person['name'] + ' ' + person['surname']
 
+    @logger(path=__name__ + '.log')
     def check_age_params(self):
         if int(self.search_params['age_from']) < 16:
             self.search_params['age_from'] = 16
