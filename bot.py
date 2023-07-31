@@ -71,8 +71,7 @@ class VK_Bot:
         # Другой населённый пункт
         elif message.startswith('+'):
             self.search_params['city'] = message[1:].capitalize()
-            self.attachment = None
-            self.keyboard = None
+            self.reset()
             return self.get_next_question()
         # Стоп
         elif message == self.COMMANDS[7]:
@@ -110,8 +109,7 @@ class VK_Bot:
             self.keyboard = self.create_buttons()
             self.counter += 1
             if self.counter > len(self.candidates):
-                self.keyboard = None
-                self.attachment = None
+                self.reset()
                 favourites_list = self.db.get_favourites(self.user_id,
                                                          self.query_id)
                 if len(favourites_list) > 0:
@@ -124,8 +122,7 @@ class VK_Bot:
             return params + person['name'] + ' ' + person['surname']
         # Правила игры
         elif message == self.COMMANDS[3]:
-            self.keyboard = None
-            self.attachment = None
+            self.reset()
             return '''
                 Бот начинает работать при вводе любого первого сообщения от пользователя.
                 * Для указания пола кандидата напишите "М" или "Ж".
@@ -140,8 +137,7 @@ class VK_Bot:
                  \n\n"Продолжаем разговор!" - как говорит мой друг Карлсон.'''
         # Выбор запроса
         elif message in (self.COMMANDS[8], self.COMMANDS[10]):
-            self.keyboard = None
-            self.attachment = None
+            self.reset()
             text = self.db.get_queries(self.user_id)
             if text != '':
                 return text + '\n\nВыберите запрос, к которому хотите вернуться,' \
@@ -149,8 +145,7 @@ class VK_Bot:
             return 'В БД нет запросов данного клиента.'
         # Возрастной интервал
         elif message is not None:
-            self.keyboard = None
-            self.attachment = None
+            self.reset()
             ages = re.match(r'(\d{2})\s*-\s*(\d{2,3})', message)
             if ages is not None and len(ages.groups()) == 2:
                 self.search_params['age_from'] = ages.group(1)
