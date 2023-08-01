@@ -9,7 +9,6 @@ from log_module import logger
 class VK_Bot:
 
     def __init__(self, client_id, vk_api):
-        print("\nСоздан объект бота")
         info = vk_api.method('users.get', {'user_ids': client_id,
                                            'fields': 'sex,city'})
         self.user_id = client_id
@@ -47,8 +46,8 @@ class VK_Bot:
                        f'Я могу помочь вам найти человека, не состоящего ' \
                        f'в отношениях.\nДля этого нужно будет ответить на ' \
                        f'несколько вопросов.\nДля прекращения работы ' \
-                       f'программы введите "стоп".\nДля получения инструкции ' \
-                       f'по командам введите "правила".' \
+                       f'программы введите "стоп".\nДля получения ' \
+                       f'инструкции по командам введите "правила".' \
                        f'\nИтак, кого вы ищете? (Введите М или Ж)'
             else:
                 self.keyboard = self.create_query_buttons()
@@ -90,13 +89,14 @@ class VK_Bot:
             self.reset()
             return 'Выключаюсь.'
         # Демонстрация фоток
-        elif message in (self.COMMANDS[4], self.COMMANDS[5], self.COMMANDS[6])\
-                or message.startswith('№'):
+        elif message in (self.COMMANDS[4], self.COMMANDS[5],
+                         self.COMMANDS[6]) or message.startswith('№'):
             params = ''
-            if message in (self.COMMANDS[4], self.COMMANDS[5], self.COMMANDS[6])\
-                and self.candidates is None:
-                    return 'Не понимаю о чем вы... Наберите "правила" для получения' \
-                   ' справки по работе с ботом.'
+            if message in (self.COMMANDS[4], self.COMMANDS[5],
+                           self.COMMANDS[6]) and self.candidates is None:
+                return 'Не понимаю о чем вы... ' \
+                       'Наберите "правила" для получения справки ' \
+                       'по работе с ботом.'
             elif (message == self.COMMANDS[4] and
                     self.counter <= len(self.candidates)):
                 self.db.add_to_favourites(
@@ -113,7 +113,7 @@ class VK_Bot:
                 self.candidates = self.db.get_persons(self.query_id,
                                                       self.user_id)
                 params = self.db.get_query_params(self.query_id)
-                params += f'\nОсталось просмотреть: {len(self.candidates)}\n\n'
+                params += f'\nОсталось просмотреть: {len(self.candidates)}\n'
             self.keyboard = self.create_buttons()
             self.counter += 1
             if self.counter > len(self.candidates):
@@ -132,15 +132,20 @@ class VK_Bot:
         elif message == self.COMMANDS[3]:
             self.reset()
             return '''
-            Бот начинает работать при вводе любого первого сообщения от пользователя.
+            Бот начинает работать при вводе любого первого сообщения от \
+            пользователя.
             * Для указания пола кандидата напишите "М" или "Ж".
             * Для указания возраста введите диапазон в формате "20-25".
-            * Для выбора локации поиска введите "+" или "+Город"
-            * При просмотре найденных кандидатов можно добавлять их в список избранных\
-             или удалять из дальнейшего просмотра при помощи кнопок "В ИЗБРАННОЕ" и "ТОЧНО НЕТ".
-            * Для просмотра следующего кандидата нажмите кнопку "СЛЕДУЮЩИЙ" или введите "следующий".
-            * Для запуска нового поиска начните вводить параметры запроса по одному в произвольном порядке.
-            * Чтобы вернуться к любому из своих запросов, введите его номер после символа "№".
+            * Для выбора локации поиска введите "+" или "+Город".
+            * При просмотре найденных кандидатов можно добавлять их в список \
+            избранных или удалять из дальнейшего просмотра при помощи кнопок \
+            "В ИЗБРАННОЕ" и "ТОЧНО НЕТ".
+            * Для просмотра следующего кандидата нажмите кнопку "СЛЕДУЮЩИЙ" \
+            или введите "следующий".
+            * Для запуска нового поиска начните вводить параметры запроса по \
+            одному в произвольном порядке.
+            * Чтобы вернуться к любому из своих запросов, введите его номер \
+            после символа "№".
             * Чтобы вывести список запросов напишите слово "запрос".
             * Для прекращения текущего сеанса работы введите "стоп".
             \n\n"Продолжаем разговор!" - как говорит мой друг Карлсон.
@@ -150,8 +155,8 @@ class VK_Bot:
             self.reset()
             text = self.db.get_queries(self.user_id)
             if text != '':
-                return text + '\n\nВыберите запрос, к которому хотите вернуться,' \
-                              ' и введите его номер в формате "№1"'
+                return text + '\n\nВыберите запрос, к которому хотите ' \
+                              'вернуться, и введите его номер в формате "№1"'
             return 'Запросов нет. Начнем новый поиск? (Введите М или Ж)'
         # Возрастной интервал
         elif message is not None:
@@ -191,8 +196,8 @@ class VK_Bot:
             return 'Кого будем искать? (Введите М или Ж)'
         if self.search_params.get('city') is None:
             return f'В каком городе будем искать?\n' \
-                   f'(Введите "+", если в вашем городе ({self.user_city}) или ' \
-                   f'название населённого пункта в формате: "+Волгоград")'
+                   f'(Введите "+", если в вашем городе ({self.user_city})' \
+                   f' или название населённого пункта в формате: "+Тула")'
         if self.search_params.get('age_from') is None:
             return f'Укажите возрастной интервал в формате: "20 - 40".\n' \
                    f'(Минимальный возраст - 16 лет, максимальный - 99)'
@@ -201,9 +206,11 @@ class VK_Bot:
                    f'(Минимальный возраст - 16 лет, максимальный - 99)'
         self.check_age_params()
         return f'Все параметры заданы:\n' \
-               f'{"мужчина" if self.search_params["gender"] == "М" else "женщина"},' \
+               f'''{"мужчина" if self.search_params["gender"] == "М"
+                              else "женщина"},''' \
                f' возраст: {self.search_params["age_from"]} - ' \
-               f'{self.search_params["age_to"]}, {self.search_params["city"]}' \
+               f'{self.search_params["age_to"]}, ' \
+               f'{self.search_params["city"]}' \
                f'\n\nНачинаю поиск... Дождитесь ответа.'
 
     @logger(path=__name__ + '.log')
@@ -225,7 +232,6 @@ class VK_Bot:
             self.search_params['age_from'], self.search_params['age_to'],
             self.search_params['gender'], self.search_params['city'])
         self.db.add_persons(self.query_id, candidates)
-        print(f'Список сформирован и записан в БД. Кандидатов: {len(candidates)}')
         return self.db.get_persons(self.query_id, self.user_id)
 
     @logger(path=__name__ + '.log')
