@@ -19,6 +19,6 @@ def logger(path):
                 error = sys.exc_info()[1]
                 result = f'Ошибка: {error.args[0]}'
                 logging.info(f'Результат: {result}')
-                return f'{result}\nКажется я сломался... Давай начнем сначала? Наберите "запрос".'
+                return f'{result}\nКажется я сломался...\nДавай начнем сначала? Наберите "запрос".'
         return new_function
     return __logger
