@@ -29,7 +29,9 @@ class VK_Finder:
                                    key=lambda x: x.get('likes', {}).get('count', 0),
                                    reverse=True)  # Сортировка по лайкам
             for photo in sorted_photos[:3]:
-                photo_urls.append(photo['sizes'][-1]['url'])
+                name = 'photo' + str(photo['owner_id']) + '_' + str(photo['id'])
+                photo_urls.append(name)
+                # photo_urls.append(photo['sizes'][-1]['url'])
         return photo_urls
 
     def get_pretendents(self, age_from, age_to, gender, city) -> list:
