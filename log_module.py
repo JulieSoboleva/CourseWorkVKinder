@@ -1,5 +1,5 @@
 import logging
-
+import sys
 
 def logger(path):
     logging.basicConfig(level=logging.INFO, filename=path, filemode='w',
@@ -11,8 +11,14 @@ def logger(path):
         def new_function(*args, **kwargs):
             logging.info(f'Вызвана функция {old_function.__name__} '
                          f'с аргументами {args} и {kwargs}')
-            result = old_function(*args, **kwargs)
-            logging.info(f'Результат: {result}')
-            return result
+            try:
+                result = old_function(*args, **kwargs)
+                logging.info(f'Результат: {result}')
+                return result
+            except Exception:
+                error = sys.exc_info()[1]
+                result = f'Ошибка: {error.args[0]}'
+                logging.info(f'Результат: {result}')
+                return f'{result}\nКажется я сломался... Давай начнем сначала? Наберите "запрос".'
         return new_function
     return __logger
